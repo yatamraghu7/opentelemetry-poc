@@ -1,0 +1,50 @@
+receivers:
+  otlp:
+    protocols:
+      grpc:
+        endpoint: "0.0.0.0:4317"
+      http:
+        endpoint: "0.0.0.0:4318"        
+
+processors:
+  batch:
+    send_batch_max_size: 1000
+    send_batch_size: 100
+    timeout: 10s
+
+exporters:
+  prometheusremotewrite:
+    endpoint: "http://prometheus:9090/api/v1/write"
+
+  prometheus:
+    endpoint: "0.0.0.0:8889"
+    enable_open_metrics: true
+
+  otlp/jaeger:
+    endpoint: jaeger-all-in-one:14250
+      timeout: 10s
+      use-compression: true
+      grpc-max-message-size: 10485760
+    tls:
+      insecure: true
+    max_msg_size_bytes: 10485760
+
+  otlp/tempo:
+    endpoint: "http://tempo:4318"
+    tls:
+      insecure: true
+
+  loki:
+    endpoint: "http://loki:3100/loki/api/v1/push"
+
+
+service:
+  pipelines:
+    traces:
+      receivers: [otlp]
+      processors: [batch]
+      exporters: [otlp/jaeger]
+    logs:
+      receivers: [otlp]
+      processors: [batch]
+      exporters: [loki]
